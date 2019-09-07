@@ -82,7 +82,6 @@ def process_folder(in_path, out_path, path, recursion=False, verbose=True, overw
             copy_other(in_path, out_path, sub_path, verbose=verbose, overwrite=overwrite)
 
 
-
 def parse_args():
     # params
     parser = argparse.ArgumentParser(description='Convert CR2 to JPG')
@@ -90,7 +89,7 @@ def parse_args():
     parser.add_argument('destination', help='destination folder for converted JPG files', type=str)
     parser.add_argument('-r', help='convert files in subfolders recursively', action='store_true', dest='recursion')
     parser.add_argument('-q', help='do not show any output', action='store_false', dest='verbose')
-    parser.add_argument('-f', help='force conversion and override existing files', action='store_true',
+    parser.add_argument('-f', help='force conversion and overwrite existing files', action='store_true',
                         dest='overwrite')
     parser.add_argument('-s', help='turns on stupid mode - other files do not get copied automatically',
                         action='store_false',
