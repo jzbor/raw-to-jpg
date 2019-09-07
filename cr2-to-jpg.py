@@ -23,7 +23,7 @@ def convert_cr2_to_jpg(in_path, out_path, path, verbose=True, overwrite=False):
     jpg_image_location = parent + file_without_ext + '.jpg'
 
     # omit files that already exist in the destination
-    if os.path.exists(jpg_image_location) and not overwrite:
+    if (os.path.exists(jpg_image_location) or os.path.exists(parent + file_without_ext + '.JPG')) and not overwrite:
         if verbose:
             print('...' + path + '\t\t => ignored (file exists)')
         return
@@ -140,30 +140,33 @@ if __name__ == "__main__":
 
     start_time = datetime.now()
 
-    if args.copy_mode:
-        if str.endswith(args.source, '.CR2') or str.endswith(args.source, '.cr2'):
-            print("Only folders are accepted as input in archive mode!")
-            exit(1)
+    try:
+        if args.copy_mode:
+            if str.endswith(args.source, '.CR2') or str.endswith(args.source, '.cr2'):
+                print("Only folders are accepted as input in archive mode!")
+                exit(1)
+            else:
+                if args.verbose:
+                    print('Archiving all files in ' + args.source)
+                    print('\tinto ' + args.destination)
+                    print()
+                copy_cr2_folder(args.source, args.destination, '', verbose=args.verbose, overwrite=args.overwrite)
         else:
-            if args.verbose:
-                print('Archiving all files in ' + args.source)
-                print('\tinto ' + args.destination)
-                print()
-            copy_cr2_folder(args.source, args.destination, '', verbose=args.verbose, overwrite=args.overwrite)
-    else:
-        if str.endswith(args.source, '.CR2') or str.endswith(args.source, '.cr2'):
-            if args.verbose:
-                print('Converting ' + args.source)
-                print('\tinto ' + args.destination)
-                print()
-            convert_cr2_to_jpg(args.source, args.destination, '', verbose=args.verbose, overwrite=args.overwrite)
-        else:
-            if args.verbose:
-                print('Converting all files in ' + args.source)
-                print('\tinto ' + args.destination)
-                print()
-            process_folder(args.source, args.destination, '', recursion=args.recursion,
-                           verbose=args.verbose, overwrite=args.overwrite, smart_mode=args.smart_mode)
+            if str.endswith(args.source, '.CR2') or str.endswith(args.source, '.cr2'):
+                if args.verbose:
+                    print('Converting ' + args.source)
+                    print('\tinto ' + args.destination)
+                    print()
+                convert_cr2_to_jpg(args.source, args.destination, '', verbose=args.verbose, overwrite=args.overwrite)
+            else:
+                if args.verbose:
+                    print('Converting all files in ' + args.source)
+                    print('\tinto ' + args.destination)
+                    print()
+                process_folder(args.source, args.destination, '', recursion=args.recursion,
+                               verbose=args.verbose, overwrite=args.overwrite, smart_mode=args.smart_mode)
+    except KeyboardInterrupt:
+        pass
 
     if args.verbose:
         print()
