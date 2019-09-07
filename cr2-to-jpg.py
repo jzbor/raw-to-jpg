@@ -10,6 +10,8 @@ import numpy
 from PIL import Image
 from rawkit import raw  # You may need to rollback libraw (eg. to libraw16)
 
+errors = []
+
 
 # converter function which iterates through list of files
 def convert_cr2_to_jpg(in_path, out_path, path, verbose=True, overwrite=False):
@@ -30,8 +32,14 @@ def convert_cr2_to_jpg(in_path, out_path, path, verbose=True, overwrite=False):
         print('...' + path + '\t\t => converting CR2-file')
 
     # parse CR2 image
-    raw_image_process = raw.Raw(in_path + path)
-    buffered_image = numpy.array(raw_image_process.to_buffer())
+    try:
+        raw_image_process = raw.Raw(in_path + path)
+        buffered_image = numpy.array(raw_image_process.to_buffer())
+    except UnicodeEncodeError:
+        if verbose:
+            print('\t...' + path + '\t\t => ERROR: Unable to read file')
+            errors.append([in_path, out_path, path])
+        return
 
     # check orientation due to PIL image stretch issue
     if raw_image_process.metadata.orientation == 0:
@@ -158,6 +166,13 @@ if __name__ == "__main__":
                            verbose=args.verbose, overwrite=args.overwrite, smart_mode=args.smart_mode)
 
     if args.verbose:
+        print()
+        if len(errors) > 0:
+            print(str(len(errors)) + 'Errors occured:')
+            for e in errors:
+                print('\t' + errors[0] + errors[2])
+        else:
+            print('No errors occured')
         print()
         print('Finished in ' + str(datetime.now() - start_time))
         print('Done')
