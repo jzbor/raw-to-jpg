@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # import what we need
 import numpy
@@ -9,22 +9,11 @@ import argparse
 from PIL import Image
 from rawkit import raw
 
-# params
-parser = argparse.ArgumentParser(description='Convert CR2 to JPG')
-parser.add_argument('-s', '--source', help='Source folder of CR2 files', required=True)
-parser.add_argument('-d', '--destination', help='Destination folder for converted JPG files', required=True)
-args = parser.parse_args()
-
-# dirs and files
-raw_file_type = ".CR2"
-raw_dir = args.source + '/'
-converted_dir = args.destination + '/'
-raw_images = glob.glob(raw_dir + '*' + raw_file_type)
 
 # converter function which iterates through list of files
 def convert_cr2_to_jpg(raw_images):
     for raw_image in raw_images:
-        print "Converting the following raw image: " + raw_image + " to JPG"
+        print("Converting the following raw image: " + raw_image + " to JPG")
 
         # file vars
         file_name = os.path.basename(raw_image)
@@ -55,6 +44,23 @@ def convert_cr2_to_jpg(raw_images):
         jpg_image.close()
         raw_image_process.close()
 
+
+def parse_args():
+    # params
+    parser = argparse.ArgumentParser(description='Convert CR2 to JPG')
+    parser.add_argument('source', help='Source folder of CR2 files', type=str)
+    parser.add_argument('destination', help='Destination folder for converted JPG files', type=str)
+    return parser.parse_args()
+
+
 # call function
 if __name__ == "__main__":
+    args = parse_args()
+
+    # dirs and files
+    raw_file_type = ".CR2"
+    raw_dir = args.source + '/'
+    converted_dir = args.destination + '/'
+    raw_images = glob.glob(raw_dir + '*' + raw_file_type)
+
     convert_cr2_to_jpg(raw_images)
