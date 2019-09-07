@@ -15,7 +15,7 @@ A simple Python script to convert CR2 photos to JPG and retain timestamps.
 3. Run the script and pass source and destination folders, for example: `./cr2-to-jpg.py ~/Desktop/raw ~/Desktop/converted`
 
 ## Requirements
-This script runs best on 'python3.5+' although it may work on 'python3.x' as well.
+This script runs best on `python3.5+` although it may work on `python3.x` as well.
 
 Script requires the following packages:
 
@@ -25,8 +25,8 @@ Script requires the following packages:
 
 These are now set in requirements.txt for easier install.
 
-It also requiers 'libraw' to be installed. In order for rawkit to work properly you may have to downgrade to 'libraw16'.
+It also requiers `libraw` to be installed. In order for rawkit to work properly you may have to downgrade to `libraw16`.
 
 ## Credits
 
-Thank you to [@mateusz-michalik], who created the original script I forked.
+Thank you to [@mateusz-michalik](https://github.com/mateusz-michalik/), who created the original script I forked.
