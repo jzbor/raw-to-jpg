@@ -87,6 +87,29 @@ def process_folder(in_path, out_path, path, recursion=False, verbose=True, overw
             copy_other(in_path, out_path, sub_path, verbose=verbose, overwrite=overwrite)
 
 
+def copy_cr2_folder(in_path, out_path, path, verbose=True, overwrite=False):
+    if not str.endswith(path, '/') or path == '':
+        path += '/'
+    if verbose:
+        print('...' + path + '\t\t => browsing folder')
+    for sub_name in os.listdir(in_path + path):
+        sub_path = path + sub_name
+        if os.path.isdir(in_path + sub_path):
+            copy_cr2_folder(in_path, out_path, sub_path, verbose=verbose, overwrite=overwrite)
+        elif str.endswith(sub_path, '.CR2') or str.endswith(sub_path, '.cr2'):
+            if os.path.exists(out_path + sub_path) and not overwrite:
+                if verbose:
+                    print('...' + sub_path + '\t\t => ignored (file exists)')
+                return
+            else:
+                if verbose:
+                    print('...' + sub_path + '\t\t => copying file')
+                parent = out_path + sub_path[:sub_path.rfind('/') + 1]
+                if not os.path.isdir(parent):
+                    os.makedirs(parent)
+                shutil.copy2(os.path.abspath(in_path + sub_path), os.path.abspath(out_path + sub_path))
+
+
 def parse_args():
     # params
     parser = argparse.ArgumentParser(description='Convert CR2 to JPG')
@@ -97,8 +120,9 @@ def parse_args():
     parser.add_argument('-f', help='force conversion and overwrite existing files', action='store_true',
                         dest='overwrite')
     parser.add_argument('-s', help='turns on stupid mode - other files do not get copied automatically',
-                        action='store_false',
-                        dest='smart_mode')
+                        action='store_false', dest='smart_mode')
+    parser.add_argument('-a', help='archives/copies all CR2-files (recursive, maintains folder structure)',
+                        action='store_true', dest='copy_mode')
     return parser.parse_args()
 
 
@@ -108,19 +132,30 @@ if __name__ == "__main__":
 
     start_time = datetime.now()
 
-    if str.endswith(args.source, '.CR2') or str.endswith(args.source, '.cr2'):
-        if args.verbose:
-            print('Converting ' + args.source)
-            print('\tinto ' + args.destination)
-            print()
-        convert_cr2_to_jpg(args.source, args.destination, '', verbose=args.verbose, overwrite=args.overwrite)
+    if args.copy_mode:
+        if str.endswith(args.source, '.CR2') or str.endswith(args.source, '.cr2'):
+            print("Only folders are accepted as input in archive mode!")
+            exit(1)
+        else:
+            if args.verbose:
+                print('Archiving all files in ' + args.source)
+                print('\tinto ' + args.destination)
+                print()
+            copy_cr2_folder(args.source, args.destination, '', verbose=args.verbose, overwrite=args.overwrite)
     else:
-        if args.verbose:
-            print('Converting all files in ' + args.source)
-            print('\tinto ' + args.destination)
-            print()
-        process_folder(args.source, args.destination, '', recursion=args.recursion,
-                       verbose=args.verbose, overwrite=args.overwrite, smart_mode=args.smart_mode)
+        if str.endswith(args.source, '.CR2') or str.endswith(args.source, '.cr2'):
+            if args.verbose:
+                print('Converting ' + args.source)
+                print('\tinto ' + args.destination)
+                print()
+            convert_cr2_to_jpg(args.source, args.destination, '', verbose=args.verbose, overwrite=args.overwrite)
+        else:
+            if args.verbose:
+                print('Converting all files in ' + args.source)
+                print('\tinto ' + args.destination)
+                print()
+            process_folder(args.source, args.destination, '', recursion=args.recursion,
+                           verbose=args.verbose, overwrite=args.overwrite, smart_mode=args.smart_mode)
 
     if args.verbose:
         print()

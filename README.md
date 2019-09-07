@@ -6,6 +6,7 @@ A simple Python script to convert CR2 photos to JPG and retain timestamps.
 - Recursively walk through folders, convert and maintain folder structure
 - Copy files that are no raw images
 - Detect existing files and ignore them
+- Archive mode: Recursively copy only CR2-files into archive
 
 ## Instructions
 
