@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 
-# import what we need
-import numpy
-import os
 import argparse
+import os
+# import what we need
+import shutil
+from datetime import datetime
+
+import numpy
 from PIL import Image
 from rawkit import raw  # You may need to rollback libraw (eg. to libraw16)
 
@@ -24,7 +27,7 @@ def convert_cr2_to_jpg(in_path, out_path, path, verbose=True, overwrite=False):
         return
 
     if verbose:
-        print('...' + path + '\t\t => converting file')
+        print('...' + path + '\t\t => converting CR2-file')
 
     # parse CR2 image
     raw_image_process = raw.Raw(in_path + path)
@@ -52,7 +55,19 @@ def convert_cr2_to_jpg(in_path, out_path, path, verbose=True, overwrite=False):
     raw_image_process.close()
 
 
-def process_folder(in_path, out_path, path, recursion=False, verbose=True, overwrite=False):
+def copy_other(in_path, out_path, path, verbose=True, overwrite=False, ):
+    if os.path.exists(out_path + path) and not overwrite:
+        if verbose:
+            print('...' + path + '\t\t => ignored (file exists)')
+        return
+
+    if verbose:
+        print('...' + path + '\t\t => copying file')
+
+    shutil.copy2(in_path + path, out_path + path)
+
+
+def process_folder(in_path, out_path, path, recursion=False, verbose=True, overwrite=False, smart_mode=False):
     if not str.endswith(path, '/') or path == '':
         path += '/'
     if verbose:
@@ -63,6 +78,9 @@ def process_folder(in_path, out_path, path, recursion=False, verbose=True, overw
             process_folder(in_path, out_path, sub_path, recursion=recursion, verbose=verbose, overwrite=overwrite)
         elif str.endswith(sub_path, '.CR2') or str.endswith(sub_path, '.cr2'):
             convert_cr2_to_jpg(in_path, out_path, sub_path, verbose=verbose, overwrite=overwrite)
+        elif smart_mode and os.path.isfile(in_path + sub_path):
+            copy_other(in_path, out_path, sub_path, verbose=verbose, overwrite=overwrite)
+
 
 
 def parse_args():
@@ -74,6 +92,9 @@ def parse_args():
     parser.add_argument('-q', help='do not show any output', action='store_false', dest='verbose')
     parser.add_argument('-f', help='force conversion and override existing files', action='store_true',
                         dest='overwrite')
+    parser.add_argument('-s', help='turns on stupid mode - other files do not get copied automatically',
+                        action='store_false',
+                        dest='smart_mode')
     return parser.parse_args()
 
 
@@ -81,11 +102,23 @@ def parse_args():
 if __name__ == "__main__":
     args = parse_args()
 
+    start_time = datetime.now()
+
     if str.endswith(args.source, '.CR2') or str.endswith(args.source, '.cr2'):
+        if args.verbose:
+            print('Converting ' + args.source)
+            print('\tinto ' + args.destination)
+            print()
         convert_cr2_to_jpg(args.source, args.destination, '', verbose=args.verbose, overwrite=args.overwrite)
     else:
+        if args.verbose:
+            print('Converting all files in ' + args.source)
+            print('\tinto ' + args.destination)
+            print()
         process_folder(args.source, args.destination, '', recursion=args.recursion,
-                       verbose=args.verbose, overwrite=args.overwrite)
+                       verbose=args.verbose, overwrite=args.overwrite, smart_mode=args.smart_mode)
 
     if args.verbose:
+        print()
+        print('Finished in ' + str(datetime.now() - start_time))
         print('Done')
