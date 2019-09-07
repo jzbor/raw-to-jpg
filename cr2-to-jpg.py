@@ -64,7 +64,11 @@ def copy_other(in_path, out_path, path, verbose=True, overwrite=False, ):
     if verbose:
         print('...' + path + '\t\t => copying file')
 
-    shutil.copy2(in_path + path, out_path + path)
+    parent = out_path + path[:path.rfind('/') + 1]
+    if not os.path.isdir(parent):
+        os.makedirs(parent)
+
+    shutil.copy2(os.path.abspath(in_path + path), os.path.abspath(out_path + path))
 
 
 def process_folder(in_path, out_path, path, recursion=False, verbose=True, overwrite=False, smart_mode=False):
@@ -75,7 +79,8 @@ def process_folder(in_path, out_path, path, recursion=False, verbose=True, overw
     for sub_name in os.listdir(in_path + path):
         sub_path = path + sub_name
         if os.path.isdir(in_path + sub_path) and recursion:
-            process_folder(in_path, out_path, sub_path, recursion=recursion, verbose=verbose, overwrite=overwrite)
+            process_folder(in_path, out_path, sub_path, recursion=recursion, verbose=verbose, overwrite=overwrite,
+                           smart_mode=smart_mode)
         elif str.endswith(sub_path, '.CR2') or str.endswith(sub_path, '.cr2'):
             convert_cr2_to_jpg(in_path, out_path, sub_path, verbose=verbose, overwrite=overwrite)
         elif smart_mode and os.path.isfile(in_path + sub_path):
