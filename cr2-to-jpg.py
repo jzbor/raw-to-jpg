@@ -4,6 +4,7 @@ import argparse
 import os
 # import what we need
 import shutil
+import sys
 from datetime import datetime
 
 import numpy
@@ -38,7 +39,7 @@ def convert_cr2_to_jpg(in_path, out_path, path, verbose=True, overwrite=False):
     except UnicodeEncodeError:
         if verbose:
             print('\t...' + path + '\t\t => ERROR: Unable to read file')
-            errors.append([in_path, out_path, path])
+            errors.append([in_path, out_path, path, sys.exc_info()])
         return
 
     # check orientation due to PIL image stretch issue
@@ -171,9 +172,9 @@ if __name__ == "__main__":
     if args.verbose:
         print()
         if len(errors) > 0:
-            print(str(len(errors)) + 'Errors occured:')
+            print(str(len(errors)) + ' errors occured:')
             for e in errors:
-                print('\t' + errors[0] + errors[2])
+                print('\t' + e[0] + e[2])
         else:
             print('No errors occured')
         print()
