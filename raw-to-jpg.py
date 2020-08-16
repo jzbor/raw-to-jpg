@@ -4,6 +4,7 @@ import argparse
 import numpy
 import os
 import rawpy
+#import rawpy.enhance --- Only import is needed to avoid unnecessary dependencies
 import shutil
 import sys
 from PIL import Image
@@ -18,7 +19,7 @@ errors = []
 
 
 # converter function which iterates through list of files
-def convert_raw_to_jpg(in_path, out_path, path, verbose=True, overwrite=False, auto_wb=False):
+def convert_raw_to_jpg(in_path, out_path, path, verbose=True, overwrite=False, auto_wb=False, enhance=False):
     # file vars
     file_name = os.path.basename(in_path + path)
     file_without_ext = os.path.splitext(file_name)[0]
@@ -37,6 +38,10 @@ def convert_raw_to_jpg(in_path, out_path, path, verbose=True, overwrite=False, a
 
     # read raw file
     raw = rawpy.imread(in_path + path)
+    # enhance
+    if enhance:
+        bad_pixels = rawpy.enhance.find_bad_pixels([in_path + path])
+        rawpy.enhance.repair_bad_pixels(raw, bad_pixels)
     # post processing (with white balance of camera)
     if auto_wb:
         rgb = raw.postprocess(use_auto_wb=True)
@@ -68,7 +73,7 @@ def copy_other(in_path, out_path, path, verbose=True, overwrite=False, ):
     shutil.copy2(os.path.abspath(in_path + path), os.path.abspath(out_path + path))
 
 
-def process_folder(in_path, out_path, path, recursion=False, verbose=True, overwrite=False, smart_mode=False):
+def process_folder(in_path, out_path, path, recursion=False, verbose=True, overwrite=False, smart_mode=False, auto_wb=False, enhance=False):
     if not str.endswith(path, '/') or path == '':
         path += '/'
     if verbose:
@@ -77,9 +82,9 @@ def process_folder(in_path, out_path, path, recursion=False, verbose=True, overw
         sub_path = path + sub_name
         if os.path.isdir(in_path + sub_path) and recursion:
             process_folder(in_path, out_path, sub_path, recursion=recursion, verbose=verbose, overwrite=overwrite,
-                           smart_mode=smart_mode)
+                           smart_mode=smart_mode, auto_wb=auto_wb, enhance=enhance)
         elif sub_path.endswith(RAW_FILE_ENDINGS):
-            convert_raw_to_jpg(in_path, out_path, sub_path, verbose=verbose, overwrite=overwrite, auto_wb=args.auto_wb)
+            convert_raw_to_jpg(in_path, out_path, sub_path, verbose=verbose, overwrite=overwrite, auto_wb=auto_wb, enhance=enhance)
         elif smart_mode and os.path.isfile(in_path + sub_path):
             copy_other(in_path, out_path, sub_path, verbose=verbose, overwrite=overwrite)
 
@@ -114,6 +119,7 @@ def parse_args():
     parser.add_argument('destination', help='destination folder for converted JPG files', type=str)
     parser.add_argument('-a', '--archive', help='archives/copies all RAW-files (recursive, maintains folder structure)',
                         action='store_true', dest='copy_mode')
+    parser.add_argument('-e', '--enhance', help='remove bad pixels', action='store_true', dest='enhance')
     parser.add_argument('-f', '--force', help='force conversion and overwrite existing files', action='store_true',
                         dest='overwrite')
     parser.add_argument('-q', '--quiet', help='do not show any output', action='store_false', dest='verbose')
@@ -129,6 +135,9 @@ def parse_args():
 # call function
 if __name__ == "__main__":
     args = parse_args()
+
+    if args.enhance:
+        import rawpy.enhance
 
     start_time = datetime.now()
 
@@ -149,14 +158,15 @@ if __name__ == "__main__":
                     print('Converting ' + args.source)
                     print('\tinto ' + args.destination)
                     print()
-                convert_raw_to_jpg(args.source, args.destination, '', verbose=args.verbose, overwrite=args.overwrite, auto_wb=args.auto_wb)
+                convert_raw_to_jpg(args.source, args.destination, '', verbose=args.verbose, overwrite=args.overwrite, auto_wb=args.auto_wb, enhance= args.enhance)
             else:
                 if args.verbose:
                     print('Converting all files in ' + args.source)
                     print('\tinto ' + args.destination)
                     print()
                 process_folder(args.source, args.destination, '', recursion=args.recursion,
-                               verbose=args.verbose, overwrite=args.overwrite, smart_mode=args.smart_mode)
+                               verbose=args.verbose, overwrite=args.overwrite, smart_mode=args.smart_mode,
+                               auto_wb=args.auto_wb, enhance=args.enhance)
     except KeyboardInterrupt:
         pass
 
