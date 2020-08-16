@@ -18,7 +18,7 @@ errors = []
 
 
 # converter function which iterates through list of files
-def convert_cr2_to_jpg(in_path, out_path, path, verbose=True, overwrite=False):
+def convert_cr2_to_jpg(in_path, out_path, path, verbose=True, overwrite=False, auto_wb=False):
     # file vars
     file_name = os.path.basename(in_path + path)
     file_without_ext = os.path.splitext(file_name)[0]
@@ -38,7 +38,10 @@ def convert_cr2_to_jpg(in_path, out_path, path, verbose=True, overwrite=False):
     # read raw file
     raw = rawpy.imread(in_path + path)
     # post processing (with white balance of camera)
-    rgb = raw.postprocess(use_camera_wb=True)
+    if auto_wb:
+        rgb = raw.postprocess(use_auto_wb=True)
+    else:
+        rgb = raw.postprocess(use_camera_wb=True)
     # create directory if not existent
     if not os.path.isdir(parent):
         os.makedirs(parent)
@@ -76,7 +79,7 @@ def process_folder(in_path, out_path, path, recursion=False, verbose=True, overw
             process_folder(in_path, out_path, sub_path, recursion=recursion, verbose=verbose, overwrite=overwrite,
                            smart_mode=smart_mode)
         elif sub_path.endswith(RAW_FILE_ENDINGS):
-            convert_cr2_to_jpg(in_path, out_path, sub_path, verbose=verbose, overwrite=overwrite)
+            convert_cr2_to_jpg(in_path, out_path, sub_path, verbose=verbose, overwrite=overwrite, auto_wb=args.auto_wb)
         elif smart_mode and os.path.isfile(in_path + sub_path):
             copy_other(in_path, out_path, sub_path, verbose=verbose, overwrite=overwrite)
 
@@ -109,14 +112,17 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Convert CR2 to JPG')
     parser.add_argument('source', help='source folder of CR2 files', type=str)
     parser.add_argument('destination', help='destination folder for converted JPG files', type=str)
-    parser.add_argument('-r', help='convert files in subfolders recursively', action='store_true', dest='recursion')
-    parser.add_argument('-q', help='do not show any output', action='store_false', dest='verbose')
-    parser.add_argument('-f', help='force conversion and overwrite existing files', action='store_true',
-                        dest='overwrite')
-    parser.add_argument('-s', help='turns on stupid mode - other files do not get copied automatically',
-                        action='store_false', dest='smart_mode')
-    parser.add_argument('-a', help='archives/copies all CR2-files (recursive, maintains folder structure)',
+    parser.add_argument('-a', '--archive', help='archives/copies all CR2-files (recursive, maintains folder structure)',
                         action='store_true', dest='copy_mode')
+    parser.add_argument('-f', '--force', help='force conversion and overwrite existing files', action='store_true',
+                        dest='overwrite')
+    parser.add_argument('-q', '--quiet', help='do not show any output', action='store_false', dest='verbose')
+    parser.add_argument('-r', '--recursive',
+                        help='convert files in subfolders recursively', action='store_true', dest='recursion')
+    parser.add_argument('-s', '--stupid', help='turns on stupid mode - other files do not get copied automatically',
+                        action='store_false', dest='smart_mode')
+    parser.add_argument('-w', '--auto-wb', help='uses automatic white balance instead of the cameras white balance',
+                        action='store_true', dest='auto_wb')
     return parser.parse_args()
 
 
@@ -143,7 +149,7 @@ if __name__ == "__main__":
                     print('Converting ' + args.source)
                     print('\tinto ' + args.destination)
                     print()
-                convert_cr2_to_jpg(args.source, args.destination, '', verbose=args.verbose, overwrite=args.overwrite)
+                convert_cr2_to_jpg(args.source, args.destination, '', verbose=args.verbose, overwrite=args.overwrite, auto_wb=args.auto_wb)
             else:
                 if args.verbose:
                     print('Converting all files in ' + args.source)
