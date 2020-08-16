@@ -20,6 +20,7 @@ errors = []
 
 # converter function which iterates through list of files
 def convert_raw_to_jpg(in_path, out_path, path, verbose=True, overwrite=False, auto_wb=False, enhance=False):
+    print(args)
     # file vars
     file_name = os.path.basename(in_path + path)
     file_without_ext = os.path.splitext(file_name)[0]
