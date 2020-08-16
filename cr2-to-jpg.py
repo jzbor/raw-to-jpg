@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 
 import argparse
+import numpy
 import os
-# import what we need
+import rawpy
 import shutil
 import sys
-from datetime import datetime
-
-import numpy
 from PIL import Image
-from rawkit import raw  # You may need to rollback libraw (eg. to libraw16)
+from datetime import datetime
 
 errors = []
 
@@ -32,36 +30,54 @@ def convert_cr2_to_jpg(in_path, out_path, path, verbose=True, overwrite=False):
     if verbose:
         print('...' + path + '\t\t => converting CR2-file')
 
-    # parse CR2 image
-    try:
-        raw_image_process = raw.Raw(in_path + path)
-        buffered_image = numpy.array(raw_image_process.to_buffer())
-    except UnicodeEncodeError:
-        if verbose:
-            print('\t...' + path + '\t\t => ERROR: Unable to read file')
-            errors.append([in_path, out_path, path, sys.exc_info()])
-        return
-
-    # check orientation due to PIL image stretch issue
-    if raw_image_process.metadata.orientation == 0:
-        jpg_image_height = raw_image_process.metadata.height
-        jpg_image_width = raw_image_process.metadata.width
-    else:
-        jpg_image_height = raw_image_process.metadata.width
-        jpg_image_width = raw_image_process.metadata.height
-
-    # prep JPG details
-    jpg_image = Image.frombytes('RGB', (jpg_image_width, jpg_image_height), buffered_image)
+    # read raw file
+    raw = rawpy.imread(in_path + path)
+    # post processing (with white balance of camera)
+    rgb = raw.postprocess(use_camera_wb=True)
+    # create directory if not existent
     if not os.path.isdir(parent):
         os.makedirs(parent)
-    jpg_image.save(jpg_image_location, format="jpeg")
-
+    # save image array
+    Image.fromarray(rgb).save(jpg_image_location, quality=100, optimize=True)
     # update JPG file timestamp to match CR2
     os.utime(jpg_image_location, (file_timestamp, file_timestamp))
 
-    # close to prevent too many open files error
-    jpg_image.close()
-    raw_image_process.close()
+    raw.close()
+    # except rawpy._rawpy.LibRawIOError:
+    #     if verbose:
+    #         print('\t...' + path + '\t\t => ERROR: Unable to read file')
+    #         errors.append([in_path, out_path, path, sys.exc_info()])
+    #     return
+
+    # try:
+    #     raw_image_process = raw.Raw(in_path + path)
+    #     buffered_image = numpy.array(raw_image_process.to_buffer())
+    # except UnicodeEncodeError:
+    #     if verbose:
+    #         print('\t...' + path + '\t\t => ERROR: Unable to read file')
+    #         errors.append([in_path, out_path, path, sys.exc_info()])
+    #     return
+
+    # # check orientation due to PIL image stretch issue
+    # if raw_image_process.metadata.orientation == 0:
+    #     jpg_image_height = raw_image_process.metadata.height
+    #     jpg_image_width = raw_image_process.metadata.width
+    # else:
+    #     jpg_image_height = raw_image_process.metadata.width
+    #     jpg_image_width = raw_image_process.metadata.height
+
+    # # prep JPG details
+    # jpg_image = Image.frombytes('RGB', (jpg_image_width, jpg_image_height), buffered_image)
+    # if not os.path.isdir(parent):
+    #     os.makedirs(parent)
+    # jpg_image.save(jpg_image_location, format="jpeg")
+
+    # # update JPG file timestamp to match CR2
+    # os.utime(jpg_image_location, (file_timestamp, file_timestamp))
+
+    # # close to prevent too many open files error
+    # jpg_image.close()
+    # raw_image_process.close()
 
 
 def copy_other(in_path, out_path, path, verbose=True, overwrite=False, ):
