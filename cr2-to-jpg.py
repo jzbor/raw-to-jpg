@@ -9,6 +9,11 @@ import sys
 from PIL import Image
 from datetime import datetime
 
+# This list/tuple may contain any raw file ending supported by libraw
+# Unfortunately I was not able to find a list with all supported types
+# Feel free to add some, open an issue or open a PR
+RAW_FILE_ENDINGS = ( '.CR2', '.cr2' )
+
 errors = []
 
 
@@ -38,47 +43,11 @@ def convert_cr2_to_jpg(in_path, out_path, path, verbose=True, overwrite=False):
     if not os.path.isdir(parent):
         os.makedirs(parent)
     # save image array
-    Image.fromarray(rgb).save(jpg_image_location, quality=100, optimize=True)
+    Image.fromarray(rgb).save(jpg_image_location, quality=90, optimize=True)
     # update JPG file timestamp to match CR2
     os.utime(jpg_image_location, (file_timestamp, file_timestamp))
 
     raw.close()
-    # except rawpy._rawpy.LibRawIOError:
-    #     if verbose:
-    #         print('\t...' + path + '\t\t => ERROR: Unable to read file')
-    #         errors.append([in_path, out_path, path, sys.exc_info()])
-    #     return
-
-    # try:
-    #     raw_image_process = raw.Raw(in_path + path)
-    #     buffered_image = numpy.array(raw_image_process.to_buffer())
-    # except UnicodeEncodeError:
-    #     if verbose:
-    #         print('\t...' + path + '\t\t => ERROR: Unable to read file')
-    #         errors.append([in_path, out_path, path, sys.exc_info()])
-    #     return
-
-    # # check orientation due to PIL image stretch issue
-    # if raw_image_process.metadata.orientation == 0:
-    #     jpg_image_height = raw_image_process.metadata.height
-    #     jpg_image_width = raw_image_process.metadata.width
-    # else:
-    #     jpg_image_height = raw_image_process.metadata.width
-    #     jpg_image_width = raw_image_process.metadata.height
-
-    # # prep JPG details
-    # jpg_image = Image.frombytes('RGB', (jpg_image_width, jpg_image_height), buffered_image)
-    # if not os.path.isdir(parent):
-    #     os.makedirs(parent)
-    # jpg_image.save(jpg_image_location, format="jpeg")
-
-    # # update JPG file timestamp to match CR2
-    # os.utime(jpg_image_location, (file_timestamp, file_timestamp))
-
-    # # close to prevent too many open files error
-    # jpg_image.close()
-    # raw_image_process.close()
-
 
 def copy_other(in_path, out_path, path, verbose=True, overwrite=False, ):
     if os.path.exists(out_path + path) and not overwrite:
@@ -106,7 +75,7 @@ def process_folder(in_path, out_path, path, recursion=False, verbose=True, overw
         if os.path.isdir(in_path + sub_path) and recursion:
             process_folder(in_path, out_path, sub_path, recursion=recursion, verbose=verbose, overwrite=overwrite,
                            smart_mode=smart_mode)
-        elif str.endswith(sub_path, '.CR2') or str.endswith(sub_path, '.cr2'):
+        elif sub_path.endswith(RAW_FILE_ENDINGS):
             convert_cr2_to_jpg(in_path, out_path, sub_path, verbose=verbose, overwrite=overwrite)
         elif smart_mode and os.path.isfile(in_path + sub_path):
             copy_other(in_path, out_path, sub_path, verbose=verbose, overwrite=overwrite)
@@ -121,7 +90,7 @@ def copy_cr2_folder(in_path, out_path, path, verbose=True, overwrite=False):
         sub_path = path + sub_name
         if os.path.isdir(in_path + sub_path):
             copy_cr2_folder(in_path, out_path, sub_path, verbose=verbose, overwrite=overwrite)
-        elif str.endswith(sub_path, '.CR2') or str.endswith(sub_path, '.cr2'):
+        elif sub_path.endswith(RAW_FILE_ENDINGS):
             if os.path.exists(out_path + sub_path) and not overwrite:
                 if verbose:
                     print('...' + sub_path + '\t\t => ignored (file exists)')
@@ -159,7 +128,7 @@ if __name__ == "__main__":
 
     try:
         if args.copy_mode:
-            if str.endswith(args.source, '.CR2') or str.endswith(args.source, '.cr2'):
+            if args.source.endswith(RAW_FILE_ENDINGS):
                 print("Only folders are accepted as input in archive mode!")
                 exit(1)
             else:
@@ -169,7 +138,7 @@ if __name__ == "__main__":
                     print()
                 copy_cr2_folder(args.source, args.destination, '', verbose=args.verbose, overwrite=args.overwrite)
         else:
-            if str.endswith(args.source, '.CR2') or str.endswith(args.source, '.cr2'):
+            if args.source.endswith(RAW_FILE_ENDINGS):
                 if args.verbose:
                     print('Converting ' + args.source)
                     print('\tinto ' + args.destination)
