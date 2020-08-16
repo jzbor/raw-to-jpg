@@ -20,7 +20,6 @@ errors = []
 
 # converter function which iterates through list of files
 def convert_raw_to_jpg(in_path, out_path, path, verbose=True, overwrite=False, auto_wb=False, enhance=False):
-    print(args)
     # file vars
     file_name = os.path.basename(in_path + path)
     file_without_ext = os.path.splitext(file_name)[0]
@@ -41,8 +40,12 @@ def convert_raw_to_jpg(in_path, out_path, path, verbose=True, overwrite=False, a
     raw = rawpy.imread(in_path + path)
     # enhance
     if enhance:
-        bad_pixels = rawpy.enhance.find_bad_pixels([in_path + path])
-        rawpy.enhance.repair_bad_pixels(raw, bad_pixels)
+        if type(enhance) == bool:
+            bad_pixels = rawpy.enhance.find_bad_pixels([in_path + path])
+            rawpy.enhance.repair_bad_pixels(raw, bad_pixels)
+        else:
+            bad_pixels = rawpy.enhance.find_bad_pixels(enhance)
+            rawpy.enhance.repair_bad_pixels(raw, bad_pixels)
     # post processing (with white balance of camera)
     if auto_wb:
         rgb = raw.postprocess(use_auto_wb=True)
@@ -90,6 +93,28 @@ def process_folder(in_path, out_path, path, recursion=False, verbose=True, overw
             copy_other(in_path, out_path, sub_path, verbose=verbose, overwrite=overwrite)
 
 
+def process_folder_ge(in_path, out_path, path, recursion=False, verbose=True, overwrite=False, smart_mode=False, auto_wb=False):
+    if not str.endswith(path, '/') or path == '':
+        path += '/'
+    if verbose:
+        print('...' + path + '\t\t => browsing folder')
+    raw_files = []
+    bad_pixel_paths = []
+    for sub_name in os.listdir(in_path + path):
+        sub_path = path + sub_name
+        if os.path.isdir(in_path + sub_path) and recursion:
+            process_folder(in_path, out_path, sub_path, recursion=recursion, verbose=verbose, overwrite=overwrite,
+                           smart_mode=smart_mode, auto_wb=auto_wb, enhance=enhance)
+        elif sub_path.endswith(RAW_FILE_ENDINGS):
+            bad_pixel_paths.append(in_path + sub_path)
+            raw_files.append((in_path, out_path, sub_path))
+        elif smart_mode and os.path.isfile(in_path + sub_path):
+            copy_other(in_path, out_path, sub_path, verbose=verbose, overwrite=overwrite)
+
+    # convert raws all at once
+    for raw_file in raw_files:
+        convert_raw_to_jpg(in_path, out_path, sub_path, verbose=verbose, overwrite=overwrite, auto_wb=auto_wb, enhance=bad_pixel_paths)
+
 def copy_raw_folder(in_path, out_path, path, verbose=True, overwrite=False):
     if not str.endswith(path, '/') or path == '':
         path += '/'
@@ -123,6 +148,8 @@ def parse_args():
     parser.add_argument('-e', '--enhance', help='remove bad pixels', action='store_true', dest='enhance')
     parser.add_argument('-f', '--force', help='force conversion and overwrite existing files', action='store_true',
                         dest='overwrite')
+    parser.add_argument('-g', '--group-enhance', help='remove bad pixels by comparing different images with the same light setting (overwrites -e)',
+                        action='store_true', dest='group_enhance')
     parser.add_argument('-q', '--quiet', help='do not show any output', action='store_false', dest='verbose')
     parser.add_argument('-r', '--recursive',
                         help='convert files in subfolders recursively', action='store_true', dest='recursion')
@@ -153,6 +180,19 @@ if __name__ == "__main__":
                     print('\tinto ' + args.destination)
                     print()
                 copy_raw_folder(args.source, args.destination, '', verbose=args.verbose, overwrite=args.overwrite)
+        elif args.group_enhance:
+            import rawpy.enhance
+            if args.source.endswith(RAW_FILE_ENDINGS):
+                print("Only folders are accepted as input in group enhance mode!")
+                exit(1)
+            else:
+                if args.verbose:
+                    print('Converting all files in ' + args.source)
+                    print('\tinto ' + args.destination + ' \t(group enchancing enabled)')
+                    print()
+                process_folder_ge(args.source, args.destination, '', recursion=args.recursion,
+                               verbose=args.verbose, overwrite=args.overwrite, smart_mode=args.smart_mode,
+                               auto_wb=args.auto_wb)
         else:
             if args.source.endswith(RAW_FILE_ENDINGS):
                 if args.verbose:
