@@ -21,6 +21,11 @@ The script runs with python3. It requires the following packages:
 - `numpy` from https://pypi.python.org/pypi/numpy
 - `PIL` from https://pypi.python.org/pypi/Pillow
 
+For the group enhancement feature you also need:
+
+- `opencv-python` from https://pypi.org/project/opencv-python/
+- `opencv` from whereever it is shipped for your os
+
 These are now set in requirements.txt for easier install.
 
 It also requires `libraw` to be installed.
