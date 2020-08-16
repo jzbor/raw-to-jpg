@@ -18,7 +18,7 @@ errors = []
 
 
 # converter function which iterates through list of files
-def convert_cr2_to_jpg(in_path, out_path, path, verbose=True, overwrite=False, auto_wb=False):
+def convert_raw_to_jpg(in_path, out_path, path, verbose=True, overwrite=False, auto_wb=False):
     # file vars
     file_name = os.path.basename(in_path + path)
     file_without_ext = os.path.splitext(file_name)[0]
@@ -33,7 +33,7 @@ def convert_cr2_to_jpg(in_path, out_path, path, verbose=True, overwrite=False, a
         return
 
     if verbose:
-        print('...' + path + '\t\t => converting CR2-file')
+        print('...' + path + '\t\t => converting RAW-file')
 
     # read raw file
     raw = rawpy.imread(in_path + path)
@@ -47,7 +47,7 @@ def convert_cr2_to_jpg(in_path, out_path, path, verbose=True, overwrite=False, a
         os.makedirs(parent)
     # save image array
     Image.fromarray(rgb).save(jpg_image_location, quality=90, optimize=True)
-    # update JPG file timestamp to match CR2
+    # update JPG file timestamp to match RAW
     os.utime(jpg_image_location, (file_timestamp, file_timestamp))
 
     raw.close()
@@ -79,12 +79,12 @@ def process_folder(in_path, out_path, path, recursion=False, verbose=True, overw
             process_folder(in_path, out_path, sub_path, recursion=recursion, verbose=verbose, overwrite=overwrite,
                            smart_mode=smart_mode)
         elif sub_path.endswith(RAW_FILE_ENDINGS):
-            convert_cr2_to_jpg(in_path, out_path, sub_path, verbose=verbose, overwrite=overwrite, auto_wb=args.auto_wb)
+            convert_raw_to_jpg(in_path, out_path, sub_path, verbose=verbose, overwrite=overwrite, auto_wb=args.auto_wb)
         elif smart_mode and os.path.isfile(in_path + sub_path):
             copy_other(in_path, out_path, sub_path, verbose=verbose, overwrite=overwrite)
 
 
-def copy_cr2_folder(in_path, out_path, path, verbose=True, overwrite=False):
+def copy_raw_folder(in_path, out_path, path, verbose=True, overwrite=False):
     if not str.endswith(path, '/') or path == '':
         path += '/'
     if verbose:
@@ -92,7 +92,7 @@ def copy_cr2_folder(in_path, out_path, path, verbose=True, overwrite=False):
     for sub_name in os.listdir(in_path + path):
         sub_path = path + sub_name
         if os.path.isdir(in_path + sub_path):
-            copy_cr2_folder(in_path, out_path, sub_path, verbose=verbose, overwrite=overwrite)
+            copy_raw_folder(in_path, out_path, sub_path, verbose=verbose, overwrite=overwrite)
         elif sub_path.endswith(RAW_FILE_ENDINGS):
             if os.path.exists(out_path + sub_path) and not overwrite:
                 if verbose:
@@ -109,10 +109,10 @@ def copy_cr2_folder(in_path, out_path, path, verbose=True, overwrite=False):
 
 def parse_args():
     # params
-    parser = argparse.ArgumentParser(description='Convert CR2 to JPG')
-    parser.add_argument('source', help='source folder of CR2 files', type=str)
+    parser = argparse.ArgumentParser(description='Convert RAW to JPG')
+    parser.add_argument('source', help='source folder of RAW files', type=str)
     parser.add_argument('destination', help='destination folder for converted JPG files', type=str)
-    parser.add_argument('-a', '--archive', help='archives/copies all CR2-files (recursive, maintains folder structure)',
+    parser.add_argument('-a', '--archive', help='archives/copies all RAW-files (recursive, maintains folder structure)',
                         action='store_true', dest='copy_mode')
     parser.add_argument('-f', '--force', help='force conversion and overwrite existing files', action='store_true',
                         dest='overwrite')
@@ -142,14 +142,14 @@ if __name__ == "__main__":
                     print('Archiving all files in ' + args.source)
                     print('\tinto ' + args.destination)
                     print()
-                copy_cr2_folder(args.source, args.destination, '', verbose=args.verbose, overwrite=args.overwrite)
+                copy_raw_folder(args.source, args.destination, '', verbose=args.verbose, overwrite=args.overwrite)
         else:
             if args.source.endswith(RAW_FILE_ENDINGS):
                 if args.verbose:
                     print('Converting ' + args.source)
                     print('\tinto ' + args.destination)
                     print()
-                convert_cr2_to_jpg(args.source, args.destination, '', verbose=args.verbose, overwrite=args.overwrite, auto_wb=args.auto_wb)
+                convert_raw_to_jpg(args.source, args.destination, '', verbose=args.verbose, overwrite=args.overwrite, auto_wb=args.auto_wb)
             else:
                 if args.verbose:
                     print('Converting all files in ' + args.source)
