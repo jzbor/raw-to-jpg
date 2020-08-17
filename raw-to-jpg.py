@@ -113,7 +113,7 @@ def process_folder_ge(in_path, out_path, path, recursion=False, verbose=True, ov
 
     # convert raws all at once
     for raw_file in raw_files:
-        convert_raw_to_jpg(in_path, out_path, sub_path, verbose=verbose, overwrite=overwrite, auto_wb=auto_wb, enhance=bad_pixel_paths)
+        convert_raw_to_jpg(raw_file[0], raw_file[1], raw_file[2], verbose=verbose, overwrite=overwrite, auto_wb=auto_wb, enhance=bad_pixel_paths)
 
 def copy_raw_folder(in_path, out_path, path, verbose=True, overwrite=False):
     if not str.endswith(path, '/') or path == '':
