@@ -13,19 +13,22 @@ from datetime import datetime
 # This list/tuple may contain any raw file ending supported by libraw
 # Unfortunately I was not able to find a list with all supported types
 # Feel free to add some, open an issue or open a PR
-RAW_FILE_ENDINGS = ( '.CR2', '.cr2' )
+RAW_FILE_ENDINGS = ( '.CR2', '.cr2', '.nef', '.NEF' )
 
 errors = []
 
 
 # converter function which iterates through list of files
-def convert_raw_to_jpg(in_path, out_path, path, verbose=True, overwrite=False, auto_wb=False, enhance=False):
+def convert_raw_to_jpg(in_path, out_path, path, verbose=True, overwrite=False, auto_wb=False, enhance=False, tiff=False):
     # file vars
     file_name = os.path.basename(in_path + path)
     file_without_ext = os.path.splitext(file_name)[0]
     file_timestamp = os.path.getmtime(in_path + path)
     parent = out_path + path[:path.rfind('/') + 1]
-    jpg_image_location = parent + file_without_ext + '.jpg'
+    if tiff:
+        jpg_image_location = parent + file_without_ext + '.tiff'
+    else:
+        jpg_image_location = parent + file_without_ext + '.jpg'
 
     # omit files that already exist in the destination
     if (os.path.exists(jpg_image_location) or os.path.exists(parent + file_without_ext + '.JPG')) and not overwrite:
@@ -77,7 +80,7 @@ def copy_other(in_path, out_path, path, verbose=True, overwrite=False, ):
     shutil.copy2(os.path.abspath(in_path + path), os.path.abspath(out_path + path))
 
 
-def process_folder(in_path, out_path, path, recursion=False, verbose=True, overwrite=False, smart_mode=False, auto_wb=False, enhance=False):
+def process_folder(in_path, out_path, path, recursion=False, verbose=True, overwrite=False, smart_mode=False, auto_wb=False, enhance=False, tiff=False):
     if not str.endswith(path, '/') or path == '':
         path += '/'
     if verbose:
@@ -88,12 +91,12 @@ def process_folder(in_path, out_path, path, recursion=False, verbose=True, overw
             process_folder(in_path, out_path, sub_path, recursion=recursion, verbose=verbose, overwrite=overwrite,
                            smart_mode=smart_mode, auto_wb=auto_wb, enhance=enhance)
         elif sub_path.endswith(RAW_FILE_ENDINGS):
-            convert_raw_to_jpg(in_path, out_path, sub_path, verbose=verbose, overwrite=overwrite, auto_wb=auto_wb, enhance=enhance)
+            convert_raw_to_jpg(in_path, out_path, sub_path, verbose=verbose, overwrite=overwrite, auto_wb=auto_wb, enhance=enhance, tiff=tiff)
         elif smart_mode and os.path.isfile(in_path + sub_path):
             copy_other(in_path, out_path, sub_path, verbose=verbose, overwrite=overwrite)
 
 
-def process_folder_ge(in_path, out_path, path, recursion=False, verbose=True, overwrite=False, smart_mode=False, auto_wb=False):
+def process_folder_ge(in_path, out_path, path, recursion=False, verbose=True, overwrite=False, smart_mode=False, auto_wb=False, tiff=False):
     if not str.endswith(path, '/') or path == '':
         path += '/'
     if verbose:
@@ -113,7 +116,7 @@ def process_folder_ge(in_path, out_path, path, recursion=False, verbose=True, ov
 
     # convert raws all at once
     for raw_file in raw_files:
-        convert_raw_to_jpg(raw_file[0], raw_file[1], raw_file[2], verbose=verbose, overwrite=overwrite, auto_wb=auto_wb, enhance=bad_pixel_paths)
+        convert_raw_to_jpg(raw_file[0], raw_file[1], raw_file[2], verbose=verbose, overwrite=overwrite, auto_wb=auto_wb, enhance=bad_pixel_paths, tiff=tiff)
 
 def copy_raw_folder(in_path, out_path, path, verbose=True, overwrite=False):
     if not str.endswith(path, '/') or path == '':
@@ -155,6 +158,8 @@ def parse_args():
                         help='convert files in subfolders recursively', action='store_true', dest='recursion')
     parser.add_argument('-s', '--stupid', help='turns on stupid mode - other files do not get copied automatically',
                         action='store_false', dest='smart_mode')
+    parser.add_argument('-t', '--tiff', help='converts into tiffs instead of jpgs',
+                        action='store_true', dest='tiff')
     parser.add_argument('-w', '--auto-wb', help='uses automatic white balance instead of the cameras white balance',
                         action='store_true', dest='auto_wb')
     return parser.parse_args()
@@ -192,14 +197,14 @@ if __name__ == "__main__":
                     print()
                 process_folder_ge(args.source, args.destination, '', recursion=args.recursion,
                                verbose=args.verbose, overwrite=args.overwrite, smart_mode=args.smart_mode,
-                               auto_wb=args.auto_wb)
+                               auto_wb=args.auto_wb, tiff=args.tiff)
         else:
             if args.source.endswith(RAW_FILE_ENDINGS):
                 if args.verbose:
                     print('Converting ' + args.source)
                     print('\tinto ' + args.destination)
                     print()
-                convert_raw_to_jpg(args.source, args.destination, '', verbose=args.verbose, overwrite=args.overwrite, auto_wb=args.auto_wb, enhance= args.enhance)
+                convert_raw_to_jpg(args.source, args.destination, '', verbose=args.verbose, overwrite=args.overwrite, auto_wb=args.auto_wb, enhance=args.enhance, tiff=args.tiff)
             else:
                 if args.verbose:
                     print('Converting all files in ' + args.source)
@@ -207,7 +212,7 @@ if __name__ == "__main__":
                     print()
                 process_folder(args.source, args.destination, '', recursion=args.recursion,
                                verbose=args.verbose, overwrite=args.overwrite, smart_mode=args.smart_mode,
-                               auto_wb=args.auto_wb, enhance=args.enhance)
+                               auto_wb=args.auto_wb, enhance=args.enhance, tiff=args.tiff)
     except KeyboardInterrupt:
         pass
 
