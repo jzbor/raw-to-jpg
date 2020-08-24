@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
 import argparse
+import linuxgui
 import numpy
 import os
+import platform
 import rawpy
 #import rawpy.enhance --- Only import is needed to avoid unnecessary dependencies
 import shutil
@@ -140,6 +142,13 @@ def copy_raw_folder(in_path, out_path, path, verbose=True, overwrite=False):
                     os.makedirs(parent)
                 shutil.copy2(os.path.abspath(in_path + sub_path), os.path.abspath(out_path + sub_path))
 
+def open_gui():
+    if not platform.system() == 'Linux':
+        print('Gui is currently supported only on linux')
+        exit(1)
+    linuxgui.main()
+    exit(0)
+
 
 def parse_args():
     # params
@@ -153,6 +162,8 @@ def parse_args():
                         dest='overwrite')
     parser.add_argument('-g', '--group-enhance', help='remove bad pixels by comparing different images with the same light setting (overwrites -e)',
                         action='store_true', dest='group_enhance')
+    parser.add_argument('--gui', help='start graphical interface (linux only)',
+                        action='store_true', dest='gui')
     parser.add_argument('-q', '--quiet', help='do not show any output', action='store_false', dest='verbose')
     parser.add_argument('-r', '--recursive',
                         help='convert files in subfolders recursively', action='store_true', dest='recursion')
@@ -167,6 +178,9 @@ def parse_args():
 
 # call function
 if __name__ == "__main__":
+    if sys.argv[1] == '--gui':
+        open_gui()
+
     args = parse_args()
 
     if args.enhance:

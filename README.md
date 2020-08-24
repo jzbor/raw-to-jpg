@@ -26,6 +26,8 @@ For the group enhancement feature you also need:
 - `opencv-python` from https://pypi.org/project/opencv-python/
 - `opencv` from whereever it is shipped for your os
 
+For the linux gui you need `python-gobject` (https://pypi.org/project/PyGObject/)
+
 These are now set in requirements.txt for easier install.
 
 It also requires `libraw` to be installed.
