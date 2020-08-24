@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=RAW2JPG
+Icon=image
+Exec="raw-to-jpg --gui"
+Comment=Capable and Ergonomic IDE for JVM
+Categories=Graphics;Utility;

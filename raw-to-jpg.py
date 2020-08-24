@@ -178,7 +178,7 @@ def parse_args():
 
 # call function
 if __name__ == "__main__":
-    if sys.argv[1] == '--gui':
+    if len(sys.argv) > 1 and sys.argv[1] == '--gui':
         open_gui()
 
     args = parse_args()
