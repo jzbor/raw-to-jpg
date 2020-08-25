@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
-import linuxgui
+import r2j_linuxgui as linuxgui
 import numpy
 import os
 import platform
@@ -146,7 +146,7 @@ def open_gui():
     if not platform.system() == 'Linux':
         print('Gui is currently supported only on linux')
         exit(1)
-    linuxgui.main()
+    linuxgui.main(sys.argv[0])
     exit(0)
 
 

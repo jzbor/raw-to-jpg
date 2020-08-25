@@ -24,14 +24,15 @@ arguments = {
 }
 
 class Application(Gtk.Window):
-    def __init__(self):
+    def __init__(self, binpath='raw-to-jpg'):
         super().__init__()
         Gtk.Window.__init__(self, title='raw2jpg')
         self.set_border_width(10)
-        self.connect('destroy', quit_application)
+        self.connect('delete-event', quit_application)
 
         self.input_path = self.output_path = None
         self.output_buffer = ''
+        self.binpath = binpath
         self.subproc = None
 
         header = Gtk.HeaderBar(title='RAW2JPG')
@@ -56,6 +57,7 @@ class Application(Gtk.Window):
         self.flag_box.set_selection_mode(Gtk.SelectionMode.NONE)
         self.output_label.set_justify(Gtk.Justification.LEFT)
         self.output_label.set_halign(Gtk.Align.START)
+        self.output_label.set_use_markup(False)
         self.scrolled_window.set_min_content_height(500)
 
         # Connect events
@@ -109,7 +111,7 @@ class Application(Gtk.Window):
         self.output_buffer = ''
         args = [ self.input_path, self.output_path ] + self.get_arguments()
         print(args)
-        self.subproc = subprocess.Popen(['python', '-u', 'raw-to-jpg.py'] + args, stdout=subprocess.PIPE)
+        self.subproc = subprocess.Popen(['python', '-u', self.binpath] + args, stdout=subprocess.PIPE)
         for line in io.TextIOWrapper(self.subproc.stdout, encoding='utf-8'):
             self.output_buffer += line
             self.output_label.set_text(self.output_buffer)
@@ -125,6 +127,19 @@ class Application(Gtk.Window):
         dialog.format_secondary_text(secondary_text)
         dialog.run()
         dialog.destroy()
+
+    def confirm_dialog(self, text, secondary_text):
+        dialog = Gtk.MessageDialog(
+            transient_for=self,
+            flags=0,
+            message_type=Gtk.MessageType.ERROR,
+            buttons=Gtk.ButtonsType.OK_CANCEL,
+            text=text,
+        )
+        dialog.format_secondary_text(secondary_text)
+        response = dialog.run()
+        dialog.destroy()
+        return response
 
     def on_button_clicked(self, source):
         if source == self.confirm_button:
@@ -147,18 +162,18 @@ class Application(Gtk.Window):
                 self.output_button.set_label(filename)
                 self.output_path = filename
 
-def quit_application(app):
+def quit_application(app, event):
     if not app.subproc == None and app.subproc.returncode == None:
-        app.subproc.send_signal(signal.SIGINT)
-        print('Killed subprocess')
+        response = app.confirm_dialog('A process is still running', 'Do you want to kill the process and exit?')
+        if response == Gtk.ResponseType.OK:
+            app.subproc.send_signal(signal.SIGINT)
+            print('Killed subprocess')
+        else:
+            return True
     Gtk.main_quit(app)
 
-def main ():
-    win = Application()
+def main(binpath='raw-to-jpg'):
+    win = Application(binpath)
 
     # Go into gtk min loop
     Gtk.main()
-
-
-if __name__ == '__main__':
-    main()
