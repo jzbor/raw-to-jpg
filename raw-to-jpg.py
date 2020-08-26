@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import argparse
-import r2j_linuxgui as linuxgui
 import numpy
 import os
 import platform
@@ -11,6 +10,8 @@ import shutil
 import sys
 from PIL import Image
 from datetime import datetime
+
+import r2j_linuxgui as linuxgui
 
 # This list/tuple may contain any raw file ending supported by libraw
 # Unfortunately I was not able to find a list with all supported types
