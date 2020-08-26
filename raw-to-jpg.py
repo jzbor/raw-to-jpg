@@ -121,7 +121,7 @@ def process_folder_ge(in_path, out_path, path, recursion=False, verbose=True, ov
     for raw_file in raw_files:
         convert_raw_to_jpg(raw_file[0], raw_file[1], raw_file[2], verbose=verbose, overwrite=overwrite, auto_wb=auto_wb, enhance=bad_pixel_paths, tiff=tiff)
 
-def copy_raw_folder(in_path, out_path, path, verbose=True, overwrite=False):
+def copy_raw_folder(in_path, out_path, path, verbose=True, overwrite=False, move=False):
     if not str.endswith(path, '/') or path == '':
         path += '/'
     if verbose:
@@ -129,19 +129,30 @@ def copy_raw_folder(in_path, out_path, path, verbose=True, overwrite=False):
     for sub_name in os.listdir(in_path + path):
         sub_path = path + sub_name
         if os.path.isdir(in_path + sub_path):
-            copy_raw_folder(in_path, out_path, sub_path, verbose=verbose, overwrite=overwrite)
+            copy_raw_folder(in_path, out_path, sub_path, verbose=verbose, overwrite=overwrite, move=move)
         elif sub_path.endswith(RAW_FILE_ENDINGS):
             if os.path.exists(out_path + sub_path) and not overwrite:
                 if verbose:
                     print('...' + sub_path + '\t\t => ignored (file exists)')
-                return
             else:
-                if verbose:
+                if verbose and move:
+                    print('...' + sub_path + '\t\t => moving file')
+                elif verbose:
                     print('...' + sub_path + '\t\t => copying file')
                 parent = out_path + sub_path[:sub_path.rfind('/') + 1]
                 if not os.path.isdir(parent):
                     os.makedirs(parent)
-                shutil.copy2(os.path.abspath(in_path + sub_path), os.path.abspath(out_path + sub_path))
+                if move:
+                    shutil.move(os.path.abspath(in_path + sub_path), os.path.abspath(out_path + sub_path))
+                else:
+                    shutil.copy2(os.path.abspath(in_path + sub_path), os.path.abspath(out_path + sub_path))
+
+                # Delete folder if there were only raws in it
+                directory = os.path.dirname(in_path + sub_path)
+                if move and len(os.listdir(directory)) == 0:
+                    if verbose:
+                        print('...' + os.path.dirname(sub_path) + '\t\t => removing directory')
+                    os.rmdir(directory)
 
 def open_gui():
     if not platform.system() == 'Linux':
@@ -156,7 +167,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Convert RAW to JPG')
     parser.add_argument('source', help='source folder of RAW files', type=str)
     parser.add_argument('destination', help='destination folder for converted JPG files', type=str)
-    parser.add_argument('-a', '--archive', help='archives/copies all RAW-files (recursive, maintains folder structure)',
+    parser.add_argument('-c', '--copy', help='copies all RAW-files (recursive, maintains folder structure)',
                         action='store_true', dest='copy_mode')
     parser.add_argument('-e', '--enhance', help='remove bad pixels', action='store_true', dest='enhance')
     parser.add_argument('-f', '--force', help='force conversion and overwrite existing files', action='store_true',
@@ -165,14 +176,16 @@ def parse_args():
                         action='store_true', dest='group_enhance')
     parser.add_argument('--gui', help='start graphical interface (linux only)',
                         action='store_true', dest='gui')
+    parser.add_argument('-m', '--move', help='move all RAW-files (recursive, maintains folder structure)',
+                        action='store_true', dest='move_mode')
     parser.add_argument('-q', '--quiet', help='do not show any output', action='store_false', dest='verbose')
     parser.add_argument('-r', '--recursive',
                         help='convert files in subfolders recursively', action='store_true', dest='recursion')
-    parser.add_argument('-s', '--stupid', help='turns on stupid mode - other files do not get copied automatically',
+    parser.add_argument('-s', '--stupid', help='turn on stupid mode - other files do not get copied automatically',
                         action='store_false', dest='smart_mode')
-    parser.add_argument('-t', '--tiff', help='converts into tiffs instead of jpgs',
+    parser.add_argument('-t', '--tiff', help='convert into tiffs instead of jpgs',
                         action='store_true', dest='tiff')
-    parser.add_argument('-w', '--auto-wb', help='uses automatic white balance instead of the cameras white balance',
+    parser.add_argument('-w', '--auto-wb', help='use automatic white balance instead of the cameras white balance',
                         action='store_true', dest='auto_wb')
     return parser.parse_args()
 
@@ -190,16 +203,16 @@ if __name__ == "__main__":
     start_time = datetime.now()
 
     try:
-        if args.copy_mode:
+        if args.copy_mode or args.move_mode:
             if args.source.endswith(RAW_FILE_ENDINGS):
-                print("Only folders are accepted as input in archive mode!")
+                print("Only folders are accepted as input in copy/move mode!")
                 exit(1)
             else:
                 if args.verbose:
                     print('Archiving all files in ' + args.source)
                     print('\tinto ' + args.destination)
                     print()
-                copy_raw_folder(args.source, args.destination, '', verbose=args.verbose, overwrite=args.overwrite)
+                copy_raw_folder(args.source, args.destination, '', verbose=args.verbose, overwrite=args.overwrite, move=args.move_mode)
         elif args.group_enhance:
             import rawpy.enhance
             if args.source.endswith(RAW_FILE_ENDINGS):

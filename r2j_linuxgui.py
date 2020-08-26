@@ -9,14 +9,15 @@ import io
 import os
 import signal
 import subprocess
+import time
 
 
 arguments = {
-    '--archive' : 'archives/copies all RAW-files (recursive, maintains folder structure)',
+    '--copy' : 'copies all RAW-files (recursive, maintains folder structure)',
     '--enhance' : 'remove bad pixels',
     '--force' : 'force conversion and overwrite existing files',
     '--group-enhance' : 'remove bad pixels by comparing different images with the same light setting (overwrites -e)',
-    '--quiet' : 'do not show any output',
+    '--move' : 'move all RAW-files (recursive, maintains folder structure)',
     '--recursive' : 'convert files in subfolders recursively',
     '--stupid' : 'turns on stupid mode - other files do not get copied automatically',
     '--tiff' : 'converts into tiffs instead of jpgs',
@@ -48,16 +49,21 @@ class Application(Gtk.Window):
         self.button_box = Gtk.Box(spacing=5)
         self.flag_box = Gtk.FlowBox()
         self.create_flag_box()
-        self.output_label = Gtk.Label()
+        self.output_view = Gtk.TextView()
         self.scrolled_window = Gtk.ScrolledWindow()
 
         self.main_box.set_selection_mode(Gtk.SelectionMode.NONE)
         self.flag_box.set_valign(Gtk.Align.START)
         self.flag_box.set_max_children_per_line(30)
         self.flag_box.set_selection_mode(Gtk.SelectionMode.NONE)
-        self.output_label.set_justify(Gtk.Justification.LEFT)
-        self.output_label.set_halign(Gtk.Align.START)
-        self.output_label.set_use_markup(False)
+        self.output_view.set_justification(Gtk.Justification.LEFT)
+        self.output_view.set_editable(False)
+        self.output_view.set_cursor_visible(False)
+        self.output_view_buffer = self.output_view.get_buffer()
+        self.output_view.set_top_margin(5)
+        self.output_view.set_right_margin(5)
+        self.output_view.set_bottom_margin(5)
+        self.output_view.set_left_margin(5)
         self.scrolled_window.set_min_content_height(500)
 
         # Connect events
@@ -68,7 +74,7 @@ class Application(Gtk.Window):
         # Compose UI
         self.button_box.pack_start(self.input_button, True, True, 0)
         self.button_box.pack_start(self.output_button, True, True, 0)
-        self.scrolled_window.add(self.output_label)
+        self.scrolled_window.add(self.output_view)
         self.main_box.add(self.button_box)
         self.main_box.add(self.flag_box)
         self.main_box.add(self.confirm_button)
@@ -80,7 +86,7 @@ class Application(Gtk.Window):
     def create_flag_box(self):
         self.checkboxes = {}
         for key in arguments.keys():
-            checkbox = Gtk.CheckButton(label=arguments[key])
+            checkbox = Gtk.CheckButton(label='{}, {}'.format(key, arguments[key]))
             self.checkboxes[checkbox] = key
             self.flag_box.add(checkbox)
 
@@ -110,11 +116,21 @@ class Application(Gtk.Window):
     def open_subprocess(self):
         self.output_buffer = ''
         args = [ self.input_path, self.output_path ] + self.get_arguments()
-        print(args)
+        print('New subproc with args: {}'.format(args))
+
         self.subproc = subprocess.Popen(['python', '-u', self.binpath] + args, stdout=subprocess.PIPE)
-        for line in io.TextIOWrapper(self.subproc.stdout, encoding='utf-8'):
+        for line in io.TextIOWrapper(self.subproc.stdout, encoding='ascii'):
+            print(line.replace('\n', ''))
             self.output_buffer += line
-            self.output_label.set_text(self.output_buffer)
+            GLib.idle_add(self.output_view_buffer.set_text, self.output_buffer)
+
+        self.subproc.poll()
+        if self.subproc.returncode != 0:
+            self.output_buffer += '\nSubprocess returned with error ({})'.format(self.subproc.returncode)
+            GLib.idle_add(self.output_view_buffer.set_text, self.output_buffer)
+        else:
+            self.output_buffer += '\n\n\t(Subprocess finished without errors)'
+            GLib.idle_add(self.output_view_buffer.set_text, self.output_buffer)
 
     def error_dialog(self, text, secondary_text):
         dialog = Gtk.MessageDialog(
