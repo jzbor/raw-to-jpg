@@ -46,7 +46,9 @@ class Application(Gtk.Window):
         self.input_button = Gtk.Button(label='Select files to convert')
         self.output_button = Gtk.Button(label='Select output destination')
         self.confirm_button = Gtk.Button(label='Let\'s go...')
-        self.button_box = Gtk.Box(spacing=5)
+        self.abort_button = Gtk.Button(label='(No process running)')
+        self.file_button_box = Gtk.Box(spacing=5)
+        self.ctrl_button_box = Gtk.Box(spacing=5)
         self.flag_box = Gtk.FlowBox()
         self.create_flag_box()
         self.output_view = Gtk.TextView()
@@ -70,14 +72,17 @@ class Application(Gtk.Window):
         self.input_button.connect('clicked', self.on_button_clicked)
         self.output_button.connect('clicked', self.on_button_clicked)
         self.confirm_button.connect('clicked', self.on_button_clicked)
+        self.abort_button.connect('clicked', self.on_button_clicked)
 
         # Compose UI
-        self.button_box.pack_start(self.input_button, True, True, 0)
-        self.button_box.pack_start(self.output_button, True, True, 0)
+        self.file_button_box.pack_start(self.input_button, True, True, 0)
+        self.file_button_box.pack_start(self.output_button, True, True, 0)
+        self.ctrl_button_box.pack_start(self.confirm_button, True, True, 0)
+        self.ctrl_button_box.pack_start(self.abort_button, True, True, 0)
         self.scrolled_window.add(self.output_view)
-        self.main_box.add(self.button_box)
+        self.main_box.add(self.file_button_box)
         self.main_box.add(self.flag_box)
-        self.main_box.add(self.confirm_button)
+        self.main_box.add(self.ctrl_button_box)
         self.main_box.add(self.scrolled_window)
         self.add(self.main_box)
 
@@ -116,6 +121,8 @@ class Application(Gtk.Window):
     def open_subprocess(self):
         self.output_buffer = ''
         args = [ self.input_path, self.output_path ] + self.get_arguments()
+        # Update abort button
+        GLib.idle_add(self.abort_button.set_label, 'Abort process')
         print('New subproc with args: {}'.format(args))
 
         self.subproc = subprocess.Popen(['python', '-u', self.binpath] + args, stdout=subprocess.PIPE)
@@ -125,19 +132,24 @@ class Application(Gtk.Window):
             GLib.idle_add(self.output_view_buffer.set_text, self.output_buffer)
 
         self.subproc.poll()
+        # Sometimes the returncode is not available right away
+        while self.subproc.returncode == None:
+            self.subproc.poll()
+            time.sleep(0.5)
         if self.subproc.returncode != 0:
             self.output_buffer += '\nSubprocess returned with error ({})'.format(self.subproc.returncode)
             GLib.idle_add(self.output_view_buffer.set_text, self.output_buffer)
         else:
             self.output_buffer += '\n\n\t(Subprocess finished without errors)'
             GLib.idle_add(self.output_view_buffer.set_text, self.output_buffer)
+        GLib.idle_add(self.abort_button.set_label, '(No process running)')
 
     def error_dialog(self, text, secondary_text):
         dialog = Gtk.MessageDialog(
             transient_for=self,
             flags=0,
             message_type=Gtk.MessageType.ERROR,
-            buttons=Gtk.ButtonsType.CANCEL,
+            buttons=Gtk.ButtonsType.OK,
             text=text,
         )
         dialog.format_secondary_text(secondary_text)
@@ -165,8 +177,14 @@ class Application(Gtk.Window):
             elif self.output_path == None \
                     or not os.path.isdir(self.output_path):
                 self.error_dialog('No output path', 'You have to select a directory where the converted files can go.')
-
-            Thread(target=self.open_subprocess).start()
+            else:
+                Thread(target=self.open_subprocess).start()
+        elif source == self.abort_button:
+            if not self.subproc == None and self.subproc.returncode == None:
+                response = self.confirm_dialog('Kill process', 'Are you sure you want to kill the running process?')
+                if response == Gtk.ResponseType.OK:
+                    self.subproc.send_signal(signal.SIGINT)
+                    print('Killed subprocess')
         elif source == self.input_button:
             response, filename = self.folder_selector_dialog('Select folder to convert')
             if response == Gtk.ResponseType.OK:

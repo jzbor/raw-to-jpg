@@ -242,7 +242,7 @@ if __name__ == "__main__":
                                verbose=args.verbose, overwrite=args.overwrite, smart_mode=args.smart_mode,
                                auto_wb=args.auto_wb, enhance=args.enhance, tiff=args.tiff)
     except KeyboardInterrupt:
-        pass
+        print('\nQuitting early because of interrupt signal...')
 
     if args.verbose:
         print()
@@ -255,3 +255,6 @@ if __name__ == "__main__":
         print()
         print('Finished in ' + str(datetime.now() - start_time))
         print('Done')
+
+    if len(errors) > 0:
+        exit(2)
