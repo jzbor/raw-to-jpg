@@ -2,6 +2,6 @@
 Type=Application
 Name=RAW2JPG
 Icon=image
-Exec="raw-to-jpg --gui"
-Comment=Capable and Ergonomic IDE for JVM
+Exec=raw-to-jpg --gui
+Comment=Convert RAW image files into JPGs
 Categories=Graphics;Utility;
