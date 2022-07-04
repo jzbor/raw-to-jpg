@@ -1,3 +1,6 @@
+***This repository is no longer maintained and its dependencies are compatible with recent python versions.
+You can use [jzbor/raw-to-img](https://github.com/jzbor/raw-to-img) instead if you are looking for a solution to easily convert raw files without fancy post processing.***
+
 # RAW to JPG
 A simple Python script to convert CR2 photos to JPG and retain timestamps.
 
